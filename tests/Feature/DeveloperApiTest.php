@@ -1,12 +1,14 @@
 <?php
 
 use App\Models\ApiKey;
+use App\Models\MessageTemplate;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\WhatsappAccount;
 use App\Models\WhatsappChat;
-use App\Models\WhatsappMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
@@ -44,16 +46,16 @@ beforeEach(function () {
 });
 
 test('api send-text succeeds for the mock number +12125550198', function () {
-    \Illuminate\Support\Facades\Http::fake([
-        '*' => \Illuminate\Support\Facades\Http::response([
+    Http::fake([
+        '*' => Http::response([
             'messaging_product' => 'whatsapp',
             'contacts' => [['input' => '+12125550198', 'wa_id' => '12125550198']],
-            'messages' => [['id' => 'wamid.MockMessageId12125550198.' . \Illuminate\Support\Str::random(16)]],
-        ], 200)
+            'messages' => [['id' => 'wamid.MockMessageId12125550198.'.Str::random(16)]],
+        ], 200),
     ]);
 
     $response = $this->withHeaders([
-        'Authorization' => 'Bearer ' . $this->rawApiKey,
+        'Authorization' => 'Bearer '.$this->rawApiKey,
         'Accept' => 'application/json',
     ])->postJson('/api/v1/messages/send-text', [
         'phone_number_id' => '985357101336442',
@@ -81,16 +83,31 @@ test('api send-text succeeds for the mock number +12125550198', function () {
 });
 
 test('api send-template succeeds for the mock number +12125550198', function () {
-    \Illuminate\Support\Facades\Http::fake([
-        '*' => \Illuminate\Support\Facades\Http::response([
+    MessageTemplate::create([
+        'tenant_id' => $this->tenant->id,
+        'whatsapp_account_id' => $this->account->id,
+        'name' => 'verification_code',
+        'language' => 'en_US',
+        'category' => 'UTILITY',
+        'status' => 'approved',
+        'components' => [
+            [
+                'type' => 'BODY',
+                'text' => 'Your verification code is {{1}}. It expires in {{2}}.',
+            ],
+        ],
+    ]);
+
+    Http::fake([
+        '*' => Http::response([
             'messaging_product' => 'whatsapp',
             'contacts' => [['input' => '+12125550198', 'wa_id' => '12125550198']],
-            'messages' => [['id' => 'wamid.MockMessageId12125550198.' . \Illuminate\Support\Str::random(16)]],
-        ], 200)
+            'messages' => [['id' => 'wamid.MockMessageId12125550198.'.Str::random(16)]],
+        ], 200),
     ]);
 
     $response = $this->withHeaders([
-        'Authorization' => 'Bearer ' . $this->rawApiKey,
+        'Authorization' => 'Bearer '.$this->rawApiKey,
         'Accept' => 'application/json',
     ])->postJson('/api/v1/messages/send-template', [
         'phone_number_id' => '985357101336442',
@@ -113,13 +130,13 @@ test('api send-template succeeds for the mock number +12125550198', function () 
         'whatsapp_chat_id' => $chat->id,
         'direction' => 'outbound',
         'message_type' => 'template',
-        'body' => 'Template Broadcast: verify_otp_usecase (123456, ZeroMsg)',
+        'body' => 'Your verification code is 123456. It expires in 5 minutes.',
         'meta_message_id' => $messageId,
     ]);
 });
 
 test('message template correctly maps named parameters in getBodyParameters', function () {
-    $template = \App\Models\MessageTemplate::create([
+    $template = MessageTemplate::create([
         'tenant_id' => $this->tenant->id,
         'whatsapp_account_id' => $this->account->id,
         'name' => 'student_attendance',
@@ -134,7 +151,7 @@ test('message template correctly maps named parameters in getBodyParameters', fu
             [
                 'type' => 'FOOTER',
                 'text' => 'زاد إدو',
-            ]
+            ],
         ],
     ]);
 
