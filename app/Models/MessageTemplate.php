@@ -146,6 +146,10 @@ class MessageTemplate extends Model
 
         // Body parameters (reuse existing logic)
         $bodyParams = $this->getBodyParameters($values);
+        $bodyParamCount = count($bodyParams);
+        $totalValuesCount = count($values);
+        $useOffset = $totalValuesCount > $bodyParamCount;
+
         if (! empty($bodyParams)) {
             $result[] = [
                 'type' => 'body',
@@ -178,6 +182,9 @@ class MessageTemplate extends Model
                     $paramName = trim($paramName);
                     // Button placeholders are typically {{1}}, map to body values positionally
                     $paramNumber = ctype_digit($paramName) ? ((int) $paramName - 1) : $urlParamIndex;
+                    if ($useOffset) {
+                        $paramNumber += $bodyParamCount;
+                    }
                     $buttonParams[] = [
                         'type' => 'text',
                         'text' => (string) ($values[$paramNumber] ?? ''),
@@ -200,7 +207,6 @@ class MessageTemplate extends Model
      * Reconstruct the actual formatted message body with variables injected.
      *
      * @param array<int, string> $values
-     * @return string
      */
     public function formatBodyText(array $values): string
     {
@@ -242,4 +248,3 @@ class MessageTemplate extends Model
         return $text;
     }
 }
-
