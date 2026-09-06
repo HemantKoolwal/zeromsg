@@ -1,0 +1,104 @@
+name: Build ZeroMsg
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ZeroMsg
+    runs-on: ubuntu-latest
+
+    steps:
+      # ---------------------------------------
+      # 1. Checkout source code
+      # ---------------------------------------
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      # ---------------------------------------
+      # 2. Setup PHP
+      # ---------------------------------------
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, bcmath, pdo, pdo_mysql, pdo_sqlite
+          tools: composer
+
+      # ---------------------------------------
+      # 3. Setup Node.js
+      # ---------------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+          cache: npm
+
+      # ---------------------------------------
+      # 4. Install PHP dependencies
+      # ---------------------------------------
+      - name: Install Composer dependencies
+        run: composer install --no-dev --prefer-dist --optimize-autoloader
+
+      # ---------------------------------------
+      # 5. Install JavaScript dependencies
+      # ---------------------------------------
+      - name: Install npm dependencies
+        run: npm ci
+
+      # ---------------------------------------
+      # 6. Build frontend
+      # ---------------------------------------
+      - name: Build frontend
+        run: npm run build
+
+      # ---------------------------------------
+      # 7. Prepare production environment
+      # ---------------------------------------
+      - name: Prepare Laravel
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+
+      # ---------------------------------------
+      # 8. Optimize Laravel
+      # ---------------------------------------
+      - name: Optimize Laravel
+        run: |
+          php artisan config:clear
+          php artisan route:clear
+          php artisan view:clear
+
+      # ---------------------------------------
+      # 9. Create deployment package
+      # ---------------------------------------
+      - name: Create deployment package
+        run: |
+          mkdir -p release
+
+          rsync -a ./ release/ \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude="node_modules" \
+            --exclude="release" \
+            --exclude="tests"
+
+          cd release
+          zip -r ../zeromsg-build.zip .
+
+      # ---------------------------------------
+      # 10. Upload build artifact
+      # ---------------------------------------
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeromsg-build
+          path: zeromsg-build.zip
+          retention-days: 30
