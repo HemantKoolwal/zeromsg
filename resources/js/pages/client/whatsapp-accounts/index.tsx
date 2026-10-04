@@ -54,8 +54,80 @@ export default function AccountsIndex({
     );
     const [guideStep, setGuideStep] = React.useState(1);
 
+    // React.useEffect(() => {
+    //     if (!whatsapp_app_id) {
+    //         return;
+    //     }
+
+    //     (window as any).fbAsyncInit = function () {
+    //         (window as any).FB.init({
+    //             appId: whatsapp_app_id,
+    //             cookie: true,
+    //             xfbml: true,
+    //             version: 'v25.0',
+    //         });
+    //     };
+
+    //     const script = document.createElement('script');
+    //     script.src = 'https://connect.facebook.net/en_US/sdk.js';
+    //     script.async = true;
+    //     script.defer = true;
+    //     document.body.appendChild(script);
+    // }, [whatsapp_app_id]);
+
+    // const handleFacebookLogin = () => {
+    //     if (!(window as any).FB) {
+    //         toast.error('Facebook SDK not loaded yet. Please refresh.');
+
+    //         return;
+    //     }
+
+    //     (window as any).FB.login(
+    //         (response: any) => {
+    //             if (response.authResponse) {
+    //                 const code = response.authResponse.code;
+    //                 router.post(
+    //                     '/dashboard/whatsapp-accounts/embedded-signup',
+    //                     {
+    //                         code: code,
+    //                     },
+    //                     {
+    //                         onSuccess: () => {
+    //                             setIsLinkOpen(false);
+    //                             toast.success(
+    //                                 'Successfully linked accounts from Facebook!',
+    //                             );
+    //                         },
+    //                     },
+    //                 );
+    //             } else {
+    //                 toast.error(
+    //                     'User cancelled login or did not fully authorize.',
+    //                 );
+    //             }
+    //         },
+    //         {
+    //             config_id: whatsapp_config_id,
+    //             response_type: 'code',
+    //             override_default_response_type: true,
+    //             extras: {
+    //                 feature: 'whatsapp_embedded_signup',
+    //                 featureType: 'only_waba_sharing',
+    //                 version: 2,
+    //             },
+    //         },
+    //     );
+    // };
+
+    // Link Number Form
+
     React.useEffect(() => {
         if (!whatsapp_app_id) {
+            return;
+        }
+
+        // If Facebook SDK is already loaded, do nothing
+        if ((window as any).FB) {
             return;
         }
 
@@ -68,24 +140,33 @@ export default function AccountsIndex({
             });
         };
 
-        const script = document.createElement('script');
-        script.src = 'https://connect.facebook.net/en_US/sdk.js';
-        script.async = true;
-        script.defer = true;
-        document.body.appendChild(script);
+        // Prevent loading the SDK multiple times
+        if (!document.getElementById('facebook-jssdk')) {
+            const script = document.createElement('script');
+
+            script.id = 'facebook-jssdk';
+            script.src = 'https://connect.facebook.net/en_US/sdk.js';
+            script.async = true;
+            script.defer = true;
+
+            document.body.appendChild(script);
+        }
     }, [whatsapp_app_id]);
 
     const handleFacebookLogin = () => {
-        if (!(window as any).FB) {
-            toast.error('Facebook SDK not loaded yet. Please refresh.');
+        const FB = (window as any).FB;
 
+        // SDK may still be loading
+        if (!FB) {
+            toast.error('Facebook SDK is still loading. Please wait a moment and try again.');
             return;
         }
 
-        (window as any).FB.login(
+        FB.login(
             (response: any) => {
                 if (response.authResponse) {
                     const code = response.authResponse.code;
+
                     router.post(
                         '/dashboard/whatsapp-accounts/embedded-signup',
                         {
@@ -119,7 +200,6 @@ export default function AccountsIndex({
         );
     };
 
-    // Link Number Form
     const linkForm = useForm({
         phone_number_id: '',
         waba_id: '',
@@ -215,13 +295,12 @@ export default function AccountsIndex({
             accessorKey: 'quality_rating',
             cell: (row) => (
                 <span
-                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        row.quality_rating === 'GREEN'
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${row.quality_rating === 'GREEN'
                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400'
                             : row.quality_rating === 'YELLOW'
-                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400'
-                              : 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400'
-                    }`}
+                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400'
+                                : 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400'
+                        }`}
                 >
                     {row.quality_rating}
                 </span>
@@ -363,22 +442,20 @@ export default function AccountsIndex({
                                     <button
                                         type="button"
                                         onClick={() => setActiveTab('facebook')}
-                                        className={`flex-1 border-b-2 pb-2.5 text-xs font-semibold transition-colors ${
-                                            activeTab === 'facebook'
+                                        className={`flex-1 border-b-2 pb-2.5 text-xs font-semibold transition-colors ${activeTab === 'facebook'
                                                 ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
                                                 : 'border-transparent text-muted-foreground hover:text-foreground'
-                                        }`}
+                                            }`}
                                     >
                                         Connect via Facebook
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setActiveTab('manual')}
-                                        className={`flex-1 border-b-2 pb-2.5 text-xs font-semibold transition-colors ${
-                                            activeTab === 'manual'
+                                        className={`flex-1 border-b-2 pb-2.5 text-xs font-semibold transition-colors ${activeTab === 'manual'
                                                 ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
                                                 : 'border-transparent text-muted-foreground hover:text-foreground'
-                                        }`}
+                                            }`}
                                     >
                                         Manual Setup
                                     </button>
@@ -424,12 +501,11 @@ export default function AccountsIndex({
                                                             (step) => (
                                                                 <div
                                                                     key={step}
-                                                                    className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-                                                                        step <=
-                                                                        guideStep
+                                                                    className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${step <=
+                                                                            guideStep
                                                                             ? 'bg-emerald-500'
                                                                             : 'dark:bg-zinc-850 bg-zinc-200'
-                                                                    }`}
+                                                                        }`}
                                                                 />
                                                             ),
                                                         )}
@@ -447,8 +523,8 @@ export default function AccountsIndex({
                                                                 ? 'Meta App Setup'
                                                                 : guideStep ===
                                                                     2
-                                                                  ? 'Copy API Credentials'
-                                                                  : 'Webhook Configuration'}
+                                                                    ? 'Copy API Credentials'
+                                                                    : 'Webhook Configuration'}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -741,14 +817,14 @@ export default function AccountsIndex({
                                                         />
                                                         {linkForm.errors
                                                             .phone_number_id && (
-                                                            <span className="text-xs text-rose-500">
-                                                                {
-                                                                    linkForm
-                                                                        .errors
-                                                                        .phone_number_id
-                                                                }
-                                                            </span>
-                                                        )}
+                                                                <span className="text-xs text-rose-500">
+                                                                    {
+                                                                        linkForm
+                                                                            .errors
+                                                                            .phone_number_id
+                                                                    }
+                                                                </span>
+                                                            )}
                                                     </div>
 
                                                     <div className="flex flex-col gap-1.5 text-left">
@@ -777,14 +853,14 @@ export default function AccountsIndex({
                                                         />
                                                         {linkForm.errors
                                                             .waba_id && (
-                                                            <span className="text-xs text-rose-500">
-                                                                {
-                                                                    linkForm
-                                                                        .errors
-                                                                        .waba_id
-                                                                }
-                                                            </span>
-                                                        )}
+                                                                <span className="text-xs text-rose-500">
+                                                                    {
+                                                                        linkForm
+                                                                            .errors
+                                                                            .waba_id
+                                                                    }
+                                                                </span>
+                                                            )}
                                                     </div>
                                                 </div>
 
@@ -813,14 +889,14 @@ export default function AccountsIndex({
                                                         />
                                                         {linkForm.errors
                                                             .app_id && (
-                                                            <span className="text-xs text-rose-500">
-                                                                {
-                                                                    linkForm
-                                                                        .errors
-                                                                        .app_id
-                                                                }
-                                                            </span>
-                                                        )}
+                                                                <span className="text-xs text-rose-500">
+                                                                    {
+                                                                        linkForm
+                                                                            .errors
+                                                                            .app_id
+                                                                    }
+                                                                </span>
+                                                            )}
                                                     </div>
 
                                                     <div className="flex flex-col gap-1.5 text-left">
@@ -848,14 +924,14 @@ export default function AccountsIndex({
                                                         />
                                                         {linkForm.errors
                                                             .access_token && (
-                                                            <span className="text-xs text-rose-500">
-                                                                {
-                                                                    linkForm
-                                                                        .errors
-                                                                        .access_token
-                                                                }
-                                                            </span>
-                                                        )}
+                                                                <span className="text-xs text-rose-500">
+                                                                    {
+                                                                        linkForm
+                                                                            .errors
+                                                                            .access_token
+                                                                    }
+                                                                </span>
+                                                            )}
                                                     </div>
                                                 </div>
 
@@ -886,14 +962,14 @@ export default function AccountsIndex({
                                                         />
                                                         {linkForm.errors
                                                             .app_secret && (
-                                                            <span className="text-xs text-rose-500">
-                                                                {
-                                                                    linkForm
-                                                                        .errors
-                                                                        .app_secret
-                                                                }
-                                                            </span>
-                                                        )}
+                                                                <span className="text-xs text-rose-500">
+                                                                    {
+                                                                        linkForm
+                                                                            .errors
+                                                                            .app_secret
+                                                                    }
+                                                                </span>
+                                                            )}
                                                     </div>
                                                 </div>
                                             </div>
