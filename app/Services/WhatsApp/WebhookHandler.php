@@ -540,7 +540,7 @@ class WebhookHandler
             }
         } elseif ($actionType === 'send_email') {
             $emailTo = $replaceVariables($action['email_to'] ?? '');
-            $subject = $replaceVariables($action['subject'] ?? 'ZeroMsg Automation Alert');
+            $subject = $replaceVariables($action['subject'] ?? 'Automation Alert');
             $emailText = $replaceVariables($action['text'] ?? '');
             if (! empty($emailTo)) {
                 try {
