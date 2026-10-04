@@ -24,16 +24,16 @@ const mainNavItems: NavItem[] = [
 ];
 
 const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/zeromsg/zeromsg-community',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://github.com/zeromsg/zeromsg-community#readme',
-        icon: BookOpen,
-    },
+    // {
+    //     title: 'Repository',
+    //     href: 'https://github.com/zeromsg/zeromsg-community',
+    //     icon: FolderGit2,
+    // },
+    // {
+    //     title: 'Documentation',
+    //     href: 'https://github.com/zeromsg/zeromsg-community#readme',
+    //     icon: BookOpen,
+    // },
 ];
 
 export function AppSidebar() {
