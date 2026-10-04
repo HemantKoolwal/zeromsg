@@ -60,18 +60,18 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
-const rightNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/zeromsg/zeromsg-community',
-        icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://github.com/zeromsg/zeromsg-community#readme',
-        icon: BookOpen,
-    },
-];
+// const rightNavItems: NavItem[] = [
+//     {
+//         title: 'Repository',
+//         href: 'https://github.com/zeromsg/zeromsg-community',
+//         icon: Folder,
+//     },
+//     {
+//         title: 'Documentation',
+//         href: 'https://github.com/zeromsg/zeromsg-community#readme',
+//         icon: BookOpen,
+//     },
+// ];
 
 const activeItemStyles =
     'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
@@ -141,7 +141,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                             ))}
                                         </div>
 
-                                        <div className="flex flex-col space-y-4">
+                                        <div className="flex flex-col space-y-4 d-none">
                                             {rightNavItems.map((item) => (
                                                 <a
                                                     key={item.title}
