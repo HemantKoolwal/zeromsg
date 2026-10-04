@@ -160,7 +160,7 @@ test('client can export and import an automation flow', function () {
 
     $payload = json_decode($export->getContent(), true);
 
-    expect($payload['type'])->toBe('zeromsg.automation_flow')
+    expect($payload['type'])->toBe('wtsp.automation_flow')
         ->and($payload['flow']['name'])->toBe('Exported Flow');
 
     $file = UploadedFile::fake()->createWithContent('flow.json', json_encode($payload));
