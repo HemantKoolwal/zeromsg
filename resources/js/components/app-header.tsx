@@ -60,7 +60,7 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
-// const rightNavItems: NavItem[] = [
+ const rightNavItems: NavItem[] = [
 //     {
 //         title: 'Repository',
 //         href: 'https://github.com/zeromsg/zeromsg-community',
@@ -71,7 +71,7 @@ const mainNavItems: NavItem[] = [
 //         href: 'https://github.com/zeromsg/zeromsg-community#readme',
 //         icon: BookOpen,
 //     },
-// ];
+ ];
 
 const activeItemStyles =
     'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
