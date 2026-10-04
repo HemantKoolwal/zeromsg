@@ -180,7 +180,7 @@ test('client can export and import an automation flow', function () {
 
 test('client can import a logic flow without trigger fields', function () {
     $payload = [
-        'type' => 'zeromsg.automation_flow',
+        'type' => 'wtsp.automation_flow',
         'flow' => [
             'name' => 'Logic Only',
             'actions' => [
