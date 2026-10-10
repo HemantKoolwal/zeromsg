@@ -121,83 +121,145 @@ export default function AccountsIndex({
 
     // Link Number Form
 
+    const [isFacebookReady, setIsFacebookReady] = React.useState(false);
+    const [isFacebookLoading, setIsFacebookLoading] = React.useState(false);
+
     React.useEffect(() => {
         if (!whatsapp_app_id) {
+            console.error("Facebook App ID is missing.");
             return;
         }
 
-        // If Facebook SDK is already loaded, do nothing
-        if ((window as any).FB) {
-            return;
-        }
+        let cancelled = false;
 
-        (window as any).fbAsyncInit = function () {
-            (window as any).FB.init({
-                appId: whatsapp_app_id,
+        const initializeFacebook = () => {
+            const FB = (window as any).FB;
+
+            if (!FB) {
+                return;
+            }
+
+            FB.init({
+                appId: String(whatsapp_app_id),
                 cookie: true,
                 xfbml: true,
-                version: 'v25.0',
+                version: "v25.0",
             });
+
+            if (!cancelled) {
+                setIsFacebookReady(true);
+            }
         };
 
-        // Prevent loading the SDK multiple times
-        if (!document.getElementById('facebook-jssdk')) {
-            const script = document.createElement('script');
+        // SDK already loaded
+        if ((window as any).FB) {
+            initializeFacebook();
 
-            script.id = 'facebook-jssdk';
-            script.src = 'https://connect.facebook.net/en_US/sdk.js';
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        // Initialize the SDK when the script finishes loading
+        (window as any).fbAsyncInit = initializeFacebook;
+
+        let script = document.getElementById(
+            "facebook-jssdk"
+        ) as HTMLScriptElement | null;
+
+        if (!script) {
+            script = document.createElement("script");
+            script.id = "facebook-jssdk";
+            script.src = "https://connect.facebook.net/en_US/sdk.js";
             script.async = true;
             script.defer = true;
 
+            script.onerror = () => {
+                if (!cancelled) {
+                    setIsFacebookReady(false);
+                    toast.error(
+                        "Unable to load Facebook SDK. Check your connection and try again."
+                    );
+                }
+            };
+
             document.body.appendChild(script);
         }
-    }, [whatsapp_app_id]);
 
+        // Handle the case where the script element exists but is not loaded yet.
+        // fbAsyncInit handles normal SDK initialization.
+
+        return () => {
+            cancelled = true;
+        };
+    }, [whatsapp_app_id]);
     const handleFacebookLogin = () => {
         const FB = (window as any).FB;
 
-        // SDK may still be loading
-        if (!FB) {
-            toast.error('Facebook SDK is still loading. Please wait a moment and try again.');
+        if (!isFacebookReady || !FB) {
+            toast.error(
+                "Facebook is not ready yet. Please wait or refresh the page."
+            );
             return;
         }
 
-        FB.login(
-            (response: any) => {
-                if (response.authResponse) {
-                    const code = response.authResponse.code;
+        if (!whatsapp_config_id) {
+            toast.error("WhatsApp configuration ID is missing.");
+            return;
+        }
 
-                    router.post(
-                        '/dashboard/whatsapp-accounts/embedded-signup',
-                        {
-                            code: code,
-                        },
-                        {
-                            onSuccess: () => {
-                                setIsLinkOpen(false);
-                                toast.success(
-                                    'Successfully linked accounts from Facebook!',
-                                );
+        setIsFacebookLoading(true);
+
+        try {
+            FB.login(
+                (response: any) => {
+                    if (response?.authResponse?.code) {
+                        router.post(
+                            "/dashboard/whatsapp-accounts/embedded-signup",
+                            {
+                                code: response.authResponse.code,
                             },
-                        },
-                    );
-                } else {
-                    toast.error(
-                        'User cancelled login or did not fully authorize.',
-                    );
-                }
-            },
-            {
-                config_id: whatsapp_config_id,
-                response_type: 'code',
-                override_default_response_type: true,
-                extras: {
-                    feature: 'whatsapp_embedded_signup',
-                    featureType: 'only_waba_sharing',
-                    version: 2,
+                            {
+                                onSuccess: () => {
+                                    setIsLinkOpen(false);
+                                    toast.success(
+                                        "Successfully linked accounts from Facebook!"
+                                    );
+                                },
+                                onError: () => {
+                                    toast.error(
+                                        "Unable to link WhatsApp account."
+                                    );
+                                },
+                                onFinish: () => {
+                                    setIsFacebookLoading(false);
+                                },
+                            }
+                        );
+                    } else {
+                        setIsFacebookLoading(false);
+
+                        toast.error(
+                            "Login was cancelled or Facebook did not return an authorization code."
+                        );
+                    }
                 },
-            },
-        );
+                {
+                    config_id: whatsapp_config_id,
+                    response_type: "code",
+                    override_default_response_type: true,
+                    extras: {
+                        feature: "whatsapp_embedded_signup",
+                        featureType: "only_waba_sharing",
+                        version: 2,
+                    },
+                }
+            );
+        } catch (error) {
+            console.error("Facebook login error:", error);
+            setIsFacebookLoading(false);
+            toast.error("Could not open Facebook Login. Please try again.");
+        }
     };
 
     const linkForm = useForm({
@@ -296,10 +358,10 @@ export default function AccountsIndex({
             cell: (row) => (
                 <span
                     className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${row.quality_rating === 'GREEN'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400'
-                            : row.quality_rating === 'YELLOW'
-                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400'
-                                : 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400'
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400'
+                        : row.quality_rating === 'YELLOW'
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400'
+                            : 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400'
                         }`}
                 >
                     {row.quality_rating}
@@ -443,8 +505,8 @@ export default function AccountsIndex({
                                         type="button"
                                         onClick={() => setActiveTab('facebook')}
                                         className={`flex-1 border-b-2 pb-2.5 text-xs font-semibold transition-colors ${activeTab === 'facebook'
-                                                ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
-                                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                                            ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
+                                            : 'border-transparent text-muted-foreground hover:text-foreground'
                                             }`}
                                     >
                                         Connect via Facebook
@@ -453,8 +515,8 @@ export default function AccountsIndex({
                                         type="button"
                                         onClick={() => setActiveTab('manual')}
                                         className={`flex-1 border-b-2 pb-2.5 text-xs font-semibold transition-colors ${activeTab === 'manual'
-                                                ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
-                                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                                            ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
+                                            : 'border-transparent text-muted-foreground hover:text-foreground'
                                             }`}
                                     >
                                         Manual Setup
@@ -473,7 +535,9 @@ export default function AccountsIndex({
 
                                         <div className="flex justify-center py-2">
                                             <Button
+                                                type="button"
                                                 onClick={handleFacebookLogin}
+                                                disabled={!isFacebookReady || isFacebookLoading}
                                                 className="w-full gap-2 bg-[#1877f2] py-5 text-white hover:bg-[#166fe5]"
                                             >
                                                 <svg
@@ -482,7 +546,14 @@ export default function AccountsIndex({
                                                 >
                                                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                                                 </svg>
-                                                <span>Link via Facebook</span>
+
+                                                <span>
+                                                    {isFacebookLoading
+                                                        ? "Connecting..."
+                                                        : isFacebookReady
+                                                            ? "Link via Facebook"
+                                                            : "Loading Facebook..."}
+                                                </span>
                                             </Button>
                                         </div>
                                     </div>
@@ -502,9 +573,9 @@ export default function AccountsIndex({
                                                                 <div
                                                                     key={step}
                                                                     className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${step <=
-                                                                            guideStep
-                                                                            ? 'bg-emerald-500'
-                                                                            : 'dark:bg-zinc-850 bg-zinc-200'
+                                                                        guideStep
+                                                                        ? 'bg-emerald-500'
+                                                                        : 'dark:bg-zinc-850 bg-zinc-200'
                                                                         }`}
                                                                 />
                                                             ),
