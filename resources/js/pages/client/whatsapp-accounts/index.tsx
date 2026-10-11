@@ -53,92 +53,26 @@ export default function AccountsIndex({
         'facebook',
     );
     const [guideStep, setGuideStep] = React.useState(1);
-
-    // React.useEffect(() => {
-    //     if (!whatsapp_app_id) {
-    //         return;
-    //     }
-
-    //     (window as any).fbAsyncInit = function () {
-    //         (window as any).FB.init({
-    //             appId: whatsapp_app_id,
-    //             cookie: true,
-    //             xfbml: true,
-    //             version: 'v25.0',
-    //         });
-    //     };
-
-    //     const script = document.createElement('script');
-    //     script.src = 'https://connect.facebook.net/en_US/sdk.js';
-    //     script.async = true;
-    //     script.defer = true;
-    //     document.body.appendChild(script);
-    // }, [whatsapp_app_id]);
-
-    // const handleFacebookLogin = () => {
-    //     if (!(window as any).FB) {
-    //         toast.error('Facebook SDK not loaded yet. Please refresh.');
-
-    //         return;
-    //     }
-
-    //     (window as any).FB.login(
-    //         (response: any) => {
-    //             if (response.authResponse) {
-    //                 const code = response.authResponse.code;
-    //                 router.post(
-    //                     '/dashboard/whatsapp-accounts/embedded-signup',
-    //                     {
-    //                         code: code,
-    //                     },
-    //                     {
-    //                         onSuccess: () => {
-    //                             setIsLinkOpen(false);
-    //                             toast.success(
-    //                                 'Successfully linked accounts from Facebook!',
-    //                             );
-    //                         },
-    //                     },
-    //                 );
-    //             } else {
-    //                 toast.error(
-    //                     'User cancelled login or did not fully authorize.',
-    //                 );
-    //             }
-    //         },
-    //         {
-    //             config_id: whatsapp_config_id,
-    //             response_type: 'code',
-    //             override_default_response_type: true,
-    //             extras: {
-    //                 feature: 'whatsapp_embedded_signup',
-    //                 featureType: 'only_waba_sharing',
-    //                 version: 2,
-    //             },
-    //         },
-    //     );
-    // };
-
-    // Link Number Form
-
     const [isFacebookReady, setIsFacebookReady] = React.useState(false);
     const [isFacebookLoading, setIsFacebookLoading] = React.useState(false);
+React.useEffect(() => {
+    if (!whatsapp_app_id) {
+        console.error("Facebook App ID is missing.");
+        return;
+    }
 
-    React.useEffect(() => {
-        if (!whatsapp_app_id) {
-            console.error("Facebook App ID is missing.");
+    let cancelled = false;
+    let sdkLoadTimeout: NodeJS.Timeout;
+
+    const initializeFacebook = () => {
+        const FB = (window as any).FB;
+
+        if (!FB) {
+            console.warn("FB object not available yet");
             return;
         }
 
-        let cancelled = false;
-
-        const initializeFacebook = () => {
-            const FB = (window as any).FB;
-
-            if (!FB) {
-                return;
-            }
-
+        try {
             FB.init({
                 appId: String(whatsapp_app_id),
                 cookie: true,
@@ -149,50 +83,68 @@ export default function AccountsIndex({
             if (!cancelled) {
                 setIsFacebookReady(true);
             }
-        };
-
-        // SDK already loaded
-        if ((window as any).FB) {
-            initializeFacebook();
-
-            return () => {
-                cancelled = true;
-            };
+        } catch (error) {
+            console.error("FB.init error:", error);
+            if (!cancelled) {
+                setIsFacebookReady(false);
+            }
         }
+    };
 
-        // Initialize the SDK when the script finishes loading
-        (window as any).fbAsyncInit = initializeFacebook;
-
-        let script = document.getElementById(
-            "facebook-jssdk"
-        ) as HTMLScriptElement | null;
-
-        if (!script) {
-            script = document.createElement("script");
-            script.id = "facebook-jssdk";
-            script.src = "https://connect.facebook.net/en_US/sdk.js";
-            script.async = true;
-            script.defer = true;
-
-            script.onerror = () => {
-                if (!cancelled) {
-                    setIsFacebookReady(false);
-                    toast.error(
-                        "Unable to load Facebook SDK. Check your connection and try again."
-                    );
-                }
-            };
-
-            document.body.appendChild(script);
-        }
-
-        // Handle the case where the script element exists but is not loaded yet.
-        // fbAsyncInit handles normal SDK initialization.
-
+    // Check if SDK is already loaded
+    if ((window as any).FB) {
+        initializeFacebook();
         return () => {
             cancelled = true;
+            clearTimeout(sdkLoadTimeout);
         };
-    }, [whatsapp_app_id]);
+    }
+
+    // Assign fbAsyncInit before adding script
+    (window as any).fbAsyncInit = initializeFacebook;
+
+    let script = document.getElementById("facebook-jssdk") as HTMLScriptElement | null;
+
+    if (!script) {
+        script = document.createElement("script");
+        script.id = "facebook-jssdk";
+        script.src = "https://connect.facebook.net/en_US/sdk.js";
+        script.async = true;
+        script.defer = true;
+        script.crossOrigin = "anonymous";
+
+        script.onerror = () => {
+            console.error("Facebook SDK failed to load");
+            if (!cancelled) {
+                setIsFacebookReady(false);
+                toast.error(
+                    "Failed to load Facebook SDK. Please check your internet connection or try again."
+                );
+            }
+        };
+
+        document.body.appendChild(script);
+
+        // Timeout fallback if SDK doesn't load
+        sdkLoadTimeout = setTimeout(() => {
+            if (!cancelled && !(window as any).FB) {
+                console.error("Facebook SDK timeout");
+                setIsFacebookReady(false);
+                toast.error(
+                    "Facebook SDK took too long to load. Please refresh the page."
+                );
+            }
+        }, 5000); // 5 second timeout
+    } else if ((window as any).FB) {
+        // Script exists and FB is available
+        initializeFacebook();
+    }
+
+    return () => {
+        cancelled = true;
+        clearTimeout(sdkLoadTimeout);
+    };
+}, [whatsapp_app_id]);
     const handleFacebookLogin = () => {
         const FB = (window as any).FB;
 
