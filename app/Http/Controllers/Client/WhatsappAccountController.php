@@ -43,7 +43,9 @@ class WhatsappAccountController extends Controller
         return Inertia::render('client/whatsapp-accounts/index', [
             'accounts' => $accounts,
             'webhook_url' => $tenant->webhook_token ? url("webhook/whatsapp/{$tenant->webhook_token}") : url('webhook/whatsapp'),
-        ]);
+            'whatsapp_app_id' => config('services.whatsapp.app_id'),
+            'whatsapp_config_id' => config('services.whatsapp.config_id'),
+            ]);
     }
 
     public function create(): RedirectResponse
