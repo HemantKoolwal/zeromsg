@@ -34,5 +34,9 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-
+    'whatsapp' => [
+        'app_id' => env('WHATSAPP_APP_ID'),
+        'config_id' => env('WHATSAPP_CONFIG_ID'),
+        'secret' => env('WHATSAPP_APP_SECRET'),
+    ],
 ];
